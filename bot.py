@@ -366,4 +366,33 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    # ЭТО ВСТАВЬ ПЕРЕД asyncio.run(main())
+from flask import Flask
+import threading
+import os
+
+web_app = Flask(__name__)
+
+@web_app.route('/')
+def hello():
+    return "Бот работает!"
+
+def run_web():
+    web_app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+
+# ЭТУ ФУНКЦИЮ main ЗАМЕНИ НА ЭТУ
+async def main():
+    init_db()
+    for admin_id in ADMIN_IDS:
+        add_admin(admin_id)
+    
+    # Запускаем веб-сервер в фоне
+    web_thread = threading.Thread(target=run_web)
+    web_thread.start()
+    
+    # Запускаем бота
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
     asyncio.run(main())
