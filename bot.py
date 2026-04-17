@@ -7,12 +7,15 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import LabeledPrice, Message
 from config import BOT_TOKEN, ADMIN_IDS
 from database import init_db, add_admin, get_admins, get_products, add_product, delete_product, save_order
+from flask import Flask
+import threading
+import os
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Состояния для добавления товара (добавлен сервер)
+# Состояния для добавления товара
 class AddProductStates(StatesGroup):
     waiting_for_name = State()
     waiting_for_price = State()
@@ -212,7 +215,7 @@ async def admin_panel(message: Message):
     
     await message.answer("🔧 **Админ-панель**\n\nВыбери действие:", reply_markup=keyboard, parse_mode="Markdown")
 
-# ========== ДОБАВЛЕНИЕ ТОВАРА (теперь с сервером) ==========
+# ========== ДОБАВЛЕНИЕ ТОВАРА ==========
 @dp.message(F.text == "➕ Добавить товар")
 async def start_add_product(message: Message, state: FSMContext):
     if message.from_user.id not in get_admins():
@@ -358,19 +361,7 @@ async def admin_stats(message: Message):
 async def back_to_main(message: Message):
     await start(message)
 
-# ========== ЗАПУСК ==========
-async def main():
-    init_db()
-    for admin_id in ADMIN_IDS:
-        add_admin(admin_id)
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    # ЭТО ВСТАВЬ ПЕРЕД asyncio.run(main())
-from flask import Flask
-import threading
-import os
-
+# ========== ВЕБ-СЕРВЕР ДЛЯ RAILWAY ==========
 web_app = Flask(__name__)
 
 @web_app.route('/')
@@ -378,15 +369,15 @@ def hello():
     return "Бот работает!"
 
 def run_web():
-    web_app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    web_app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
-# ЭТУ ФУНКЦИЮ main ЗАМЕНИ НА ЭТУ
+# ========== ЗАПУСК ==========
 async def main():
     init_db()
     for admin_id in ADMIN_IDS:
         add_admin(admin_id)
     
-    # Запускаем веб-сервер в фоне
+    # Запускаем веб-сервер в фоновом потоке
     web_thread = threading.Thread(target=run_web)
     web_thread.start()
     
@@ -394,5 +385,4 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
     asyncio.run(main())
